@@ -1,6 +1,11 @@
 # Micro Llama
 
-The smallest possible LLM API.
+The smallest possible LLM API. Build a question and answer interface to your own
+content in a few minutes. Uses
+[OpenAI embeddings](https://platform.openai.com/docs/guides/embeddings/what-are-embeddings),
+[text-davinci-003](https://platform.openai.com/docs/models/gpt-3) and
+[Faiss](https://faiss.ai), via
+[Langchain](https://langchain.readthedocs.io/en/latest/).
 
 ## Usage
 
