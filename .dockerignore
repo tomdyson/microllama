@@ -1,0 +1,7 @@
+fly.toml
+venv
+.env
+faiss_index
+__pycache__
+README.md
+LICENSE
