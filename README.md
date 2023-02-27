@@ -25,9 +25,10 @@ See `example.source.json` for an example.
 pip install langchain faiss-cpu openai fastapi "uvicorn[standard]"
 ```
 
-3. Get an OpenAI API key and add it to the environment, e.g.
-   `export OPENAI_API_KEY=sk-etc`. Note that indexing and querying require
-   OpenAI credits, which aren't free.
+3. Get an [OpenAI API key](https://platform.openai.com/account/api-keys) and add
+   it to the environment, e.g. `export OPENAI_API_KEY=sk-etc`. Note that
+   indexing and querying require OpenAI credits, which
+   [aren't free](https://openai.com/api/pricing/).
 
 4. Run your server with `uvicorn serve:app`. If the search index doesn't exist,
    it'll be created and stored.
@@ -37,6 +38,9 @@ pip install langchain faiss-cpu openai fastapi "uvicorn[standard]"
 ## Deploying your API
 
 ### On Fly.io
+
+Sign up for a [Fly.io](https://fly.io) account and
+[install flyctl](https://fly.io/docs/hands-on/install-flyctl/). Then:
 
 ```bash
 fly launch # answer no to Postgres, Redis and deploying now 
