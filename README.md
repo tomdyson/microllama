@@ -1,3 +1,4 @@
+![llama-small](https://user-images.githubusercontent.com/15543/221690917-1ca1dcb7-4a88-4ef8-842c-98268e3f4e63.jpg)
 # Micro Llama
 
 The smallest possible LLM API. Build a question and answer interface to your own
