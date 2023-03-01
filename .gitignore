@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 fly.toml
-source.json
+# source.json
 faiss_index/
 ig-*
 
