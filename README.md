@@ -57,6 +57,16 @@ fly secrets set OPENAI_API_KEY=sk-etc
 fly deploy
 ```
 
+### On Google Cloud Run
+
+```bash
+gcloud run deploy --source . --set-env-vars="OPENAI_API_KEY=sk-etc"
+```
+
+For Cloud Run and other serverless platforms you should probably generate the
+FAISS index at container build time, to reduce cold starts. See the two
+commented lines in `Dockerfile`.
+
 ## Based on
 
 - [Langchain](https://langchain.readthedocs.io/en/latest/)
