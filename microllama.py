@@ -12,6 +12,7 @@ from langchain.vectorstores.faiss import FAISS
 
 FAISS_INDEX_PATH = os.environ.get("FAISS_INDEX_PATH", "faiss_index")
 SOURCE_JSON = os.environ.get("SOURCE_JSON", "source.json")
+MAX_RELATED_DOCUMENTS = int(os.environ.get("MAX_RELATED_DOCUMENTS"), 5)
 
 
 def log(msg):
@@ -57,10 +58,16 @@ def get_index(path=FAISS_INDEX_PATH, create=False):
 @lru_cache
 def answer(question, index):
     chain = load_qa_with_sources_chain(OpenAI(temperature=0))
-    return chain(
+    output = chain(
         {
-            "input_documents": index.similarity_search(question, k=4),
+            "input_documents": index.similarity_search(
+                question, k=MAX_RELATED_DOCUMENTS
+            ),
             "question": question,
         },
-        return_only_outputs=True,
-    )["output_text"].strip()
+        return_only_outputs=False,
+    )
+    # TODO: extract sources without silly string splitting
+    answer = output["output_text"].split("SOURCES:")[0].strip()
+    sources = [doc.metadata["source"] for doc in output["input_documents"]]
+    return {"answer": answer, "sources": sources}

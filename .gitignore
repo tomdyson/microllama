@@ -5,6 +5,7 @@ __pycache__/
 fly.toml
 source.json
 faiss_index/
+ig-*
 
 # C extensions
 *.so

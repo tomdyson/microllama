@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Micro Llama</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://unpkg.com/tachyons/css/tachyons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.3.4/axios.min.js"></script>
+</head>
+
+<body class="w-100 avenir black-80 bg-yellow">
+    <div id="app" class="mw5 mw6-ns center">
+        <form @submit="formSubmit" class="pa2 black-80">
+            <div class="measure">
+                <h1 class="f-subheadline lh-solid mb4 near-black"><span class="orange">micro</span>Llama</h1>
+                <label for="question" class="f4 db mb3">Your question:</label>
+                <input id="question" class="input-reset f4 ba b--black-20 pa2 mb1 db w-100 br2" type="text"
+                    v-model.lazy="question">
+                <input id="submit" class="dim mt3 pointer ph3 pv2 input-reset ba b--black br2 bg-transparent f4 mb2"
+                    type="submit" :value="button_text">
+                <p class="mt1 georgia f4 lh-copy">{{ answer }}</p>
+                <p v-if="sources" class="mt2 georgia i mid-gray f5">Sources:
+                <ul>
+                    <li v-for="source in sources" class="georgia i mid-gray f5 lh-copy">{{ source }}</li>
+                </ul>
+                </p>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                question: '',
+                answer: '',
+                sources: false,
+                prompt: '',
+                button_text: 'Tell me',
+                display: false,
+            },
+            methods: {
+                formSubmit(e) {
+                    e.preventDefault();
+                    app.button_text = "Hold tight...";
+                    api_url = "/api/ask?q=" + app.question;
+                    axios.get(api_url)
+                        .then(function (response) {
+                            app.answer = response.data['response']['answer'];
+                            app.sources = response.data['response']['sources'];
+                            app.button_text = "Tell me";
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        });
+                },
+            }
+        })
+    </script>
+</body>
+
+</html>
