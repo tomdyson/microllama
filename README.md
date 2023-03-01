@@ -1,5 +1,6 @@
 ![llama-small](https://user-images.githubusercontent.com/15543/221690917-1ca1dcb7-4a88-4ef8-842c-98268e3f4e63.jpg)
-# Micro Llama
+
+# MicroLlama
 
 The smallest possible LLM API. Build a question and answer interface to your own
 content in a few minutes. Uses
@@ -39,7 +40,9 @@ pip install langchain faiss-cpu openai fastapi "uvicorn[standard]"
 4. Run your server with `uvicorn serve:app`. If the search index doesn't exist,
    it'll be created and stored.
 
-5. Query your documents at `/api/ask?your question`.
+5. Query your documents at
+   [/api/ask?your question](http://127.0.0.1:8000/api/ask?your%20question) or
+   use the simple front-end at [/](http://127.0.0.1:8000/)
 
 ## Deploying your API
 
@@ -54,7 +57,7 @@ fly secrets set OPENAI_API_KEY=sk-etc
 fly deploy
 ```
 
-## Inspiration
+## Based on
 
 - [Langchain](https://langchain.readthedocs.io/en/latest/)
 - Simon Willison's
