@@ -12,7 +12,7 @@ from langchain.vectorstores.faiss import FAISS
 
 FAISS_INDEX_PATH = os.environ.get("FAISS_INDEX_PATH", "faiss_index")
 SOURCE_JSON = os.environ.get("SOURCE_JSON", "source.json")
-MAX_RELATED_DOCUMENTS = int(os.environ.get("MAX_RELATED_DOCUMENTS"), 5)
+MAX_RELATED_DOCUMENTS = int(os.environ.get("MAX_RELATED_DOCUMENTS", 5))
 
 
 def log(msg):
