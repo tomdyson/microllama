@@ -3,16 +3,17 @@ import os
 from functools import lru_cache
 import sys
 
-from langchain.chains.qa_with_sources import load_qa_with_sources_chain
+import openai
+
 from langchain.docstore.document import Document
 from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.llms import OpenAI
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores.faiss import FAISS
 
 FAISS_INDEX_PATH = os.environ.get("FAISS_INDEX_PATH", "faiss_index")
 SOURCE_JSON = os.environ.get("SOURCE_JSON", "source.json")
 MAX_RELATED_DOCUMENTS = int(os.environ.get("MAX_RELATED_DOCUMENTS", 5))
+EXTRA_CONTEXT = os.environ.get("EXTRA_CONTEXT", "Answer in no more than two sentences.")
 
 
 def log(msg):
@@ -55,19 +56,34 @@ def get_index(path=FAISS_INDEX_PATH, create=False):
     return index
 
 
+def find_similar_docs(question, index):
+    # find similar documents to the question
+    return index.similarity_search(question, k=MAX_RELATED_DOCUMENTS)
+
+
 @lru_cache
-def answer(question, index):
-    chain = load_qa_with_sources_chain(OpenAI(temperature=0))
-    output = chain(
+def answer(question, index, extra_context=EXTRA_CONTEXT):
+    similar_docs = find_similar_docs(question, index)
+    sources = {doc.metadata["source"] for doc in similar_docs}
+    prompt_context = " ".join([doc.page_content for doc in similar_docs])
+    prompt_messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
         {
-            "input_documents": index.similarity_search(
-                question, k=MAX_RELATED_DOCUMENTS
-            ),
-            "question": question,
+            "role": "system",
+            "content": "Use the following context to answer the questions.",
         },
-        return_only_outputs=False,
+        {"role": "system", "content": prompt_context},
+        {
+            "role": "system",
+            "content": "Don't mention the context in your answer.",
+        },
+    ]
+    if extra_context:
+        prompt_messages.append({"role": "system", "content": extra_context})
+    prompt_messages.append({"role": "user", "content": question})
+    resp = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=prompt_messages,
     )
-    # TODO: extract sources without silly string splitting
-    answer = output["output_text"].split("SOURCES:")[0].strip()
-    sources = [doc.metadata["source"] for doc in output["input_documents"]]
+    answer = resp["choices"][0]["message"]["content"].strip()
     return {"answer": answer, "sources": sources}
