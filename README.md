@@ -5,7 +5,7 @@
 The smallest possible LLM API. Build a question and answer interface to your own
 content in a few minutes. Uses
 [OpenAI embeddings](https://platform.openai.com/docs/guides/embeddings/what-are-embeddings),
-[text-davinci-003](https://platform.openai.com/docs/models/gpt-3) and
+[gpt-3.5](https://platform.openai.com/docs/guides/chat) and
 [Faiss](https://faiss.ai), via
 [Langchain](https://langchain.readthedocs.io/en/latest/).
 
@@ -77,3 +77,9 @@ commented lines in `Dockerfile`.
 - [FastAPI](https://fastapi.tiangolo.com)
 - [GPT Index](https://gpt-index.readthedocs.io/en/latest/)
 - [Dagster blog post](https://dagster.io/blog/chatgpt-langchain)
+
+## TODO
+
+- [ ] Use splitting which generates more meaningful fragments, e.g.
+      text_splitter =
+      `SpacyTextSplitter(chunk_size=700, chunk_overlap=200, separator=" ")`
