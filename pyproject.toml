@@ -9,6 +9,17 @@ readme = "README.md"
 license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
+dependencies = [
+    "langchain", 
+    "faiss-cpu",
+    "openai",
+    "fastapi",
+    "uvicorn[standard]",
+]
 
 [project.urls]
 Home = "https://github.com/tomdyson/microllama"
+
+[project.scripts]
+ml_index = "microllama:index"
+ml_serve = "microllama:serve"
