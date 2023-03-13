@@ -14,7 +14,7 @@
     <div id="app" class="mw6 center">
         <form @submit="formSubmit" class="pa2 black-80">
             <div class="measure">
-                <h1 class="f-subheadline-ns f1 lh-solid mb4 near-black"><span class="orange">micro</span>Llama</h1>
+                <h1 class="f-subheadline-ns f1 lh-solid mb4 near-black"><span class="orange">chat</span>NHS</h1>
                 <label for="question" class="f4 db mb3">Your question:</label>
                 <input id="question" class="input-reset f4 ba b--black-20 pa2 mb1 db w-100 br2" type="text"
                     v-model.lazy="question">
@@ -23,7 +23,10 @@
                 <p class="mt1 georgia f4 lh-copy">{{ answer }}</p>
                 <p v-if="sources" class="mt2 georgia i mid-gray f5">Sources:
                 <ul>
-                    <li v-for="source in sources" class="georgia i mid-gray f5 lh-copy">{{ source }}</li>
+                    <li v-for="source in sources" class="georgia i mid-gray f5 lh-copy">
+                        <a v-if="source[1]" :href="source[1]" class="mid-gray dim">{{ source[0] }}</a>
+                        <span v-else>{{ source[0] }}</span>
+                    </li>
                 </ul>
                 </p>
             </div>

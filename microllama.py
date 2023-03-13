@@ -2,6 +2,7 @@ import json
 import os
 from functools import lru_cache
 import sys
+import inspect
 
 import openai
 
@@ -13,7 +14,13 @@ from langchain.vectorstores.faiss import FAISS
 FAISS_INDEX_PATH = os.environ.get("FAISS_INDEX_PATH", "faiss_index")
 SOURCE_JSON = os.environ.get("SOURCE_JSON", "source.json")
 MAX_RELATED_DOCUMENTS = int(os.environ.get("MAX_RELATED_DOCUMENTS", 5))
-EXTRA_CONTEXT = os.environ.get("EXTRA_CONTEXT", "Answer in no more than two sentences.")
+EXTRA_CONTEXT = os.environ.get(
+    "EXTRA_CONTEXT",
+    """
+        Answer in no more than three sentences. If the answer is not included 
+        in the context, say 'Sorry, this is no answer for this in my sources.'.
+    """,
+)
 
 
 def log(msg):
@@ -28,6 +35,8 @@ def create_documents_from_texts():
             page_content=item["content"],
             metadata={"source": item["source"]},
         )
+        if item.get("url"):
+            document.metadata["url"] = item["url"]
         documents.append(document)
     return documents
 
@@ -64,7 +73,9 @@ def find_similar_docs(question, index):
 @lru_cache
 def answer(question, index, extra_context=EXTRA_CONTEXT):
     similar_docs = find_similar_docs(question, index)
-    sources = {doc.metadata["source"] for doc in similar_docs}
+    sources = {
+        (doc.metadata["source"], doc.metadata.get("url")) for doc in similar_docs
+    }
     prompt_context = " ".join([doc.page_content for doc in similar_docs])
     prompt_messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -79,7 +90,9 @@ def answer(question, index, extra_context=EXTRA_CONTEXT):
         },
     ]
     if extra_context:
-        prompt_messages.append({"role": "system", "content": extra_context})
+        prompt_messages.append(
+            {"role": "system", "content": inspect.cleandoc(extra_context)}
+        )
     prompt_messages.append({"role": "user", "content": question})
     resp = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
