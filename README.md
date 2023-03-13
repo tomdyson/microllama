@@ -17,7 +17,8 @@ content in a few minutes. Uses
 ```json
 [
     {
-        "source": "Reference to the source of your content. This could be a URL or a title or a filename",
+        "source": "Reference to the source of your content. Typically a title.",
+        "url": "URL for your source. This key is optional.",
         "content": "Your content as a single string. If there's a title or summary, put these first, separated by new lines."
     }, 
     ...
