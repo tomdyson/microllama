@@ -1,3 +1,7 @@
+"""The smallest possible LLM API"""
+
+__version__ = "0.1"
+
 import json
 import os
 from functools import lru_cache
