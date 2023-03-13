@@ -27,10 +27,10 @@ content in a few minutes. Uses
 
 See `example.source.json` for an example.
 
-2. Install dependencies:
+2. Install MicroLlama into a virtual environment:
 
 ```bash
-pip install langchain faiss-cpu openai fastapi "uvicorn[standard]"
+pip install microllama"
 ```
 
 3. Get an [OpenAI API key](https://platform.openai.com/account/api-keys) and add
@@ -38,8 +38,8 @@ pip install langchain faiss-cpu openai fastapi "uvicorn[standard]"
    indexing and querying require OpenAI credits, which
    [aren't free](https://openai.com/api/pricing/).
 
-4. Run your server with `uvicorn serve:app`. If the search index doesn't exist,
-   it'll be created and stored.
+4. Run your server with `ml_serve`. If the search index doesn't exist, it'll be
+   created and stored.
 
 5. Query your documents at
    [/api/ask?your question](http://127.0.0.1:8000/api/ask?your%20question) or
@@ -64,9 +64,9 @@ fly deploy
 gcloud run deploy --source . --set-env-vars="OPENAI_API_KEY=sk-etc"
 ```
 
-For Cloud Run and other serverless platforms you should probably generate the
-FAISS index at container build time, to reduce cold starts. See the two
-commented lines in `Dockerfile`.
+For Cloud Run and other serverless platforms you should generate the FAISS index
+at container build time, to reduce startup time. See the two commented lines in
+`Dockerfile`.
 
 ## Based on
 
