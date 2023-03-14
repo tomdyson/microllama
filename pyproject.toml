@@ -21,5 +21,4 @@ dependencies = [
 Home = "https://github.com/tomdyson/microllama"
 
 [project.scripts]
-ml_index = "microllama:index"
-ml_serve = "microllama:serve"
+microllama = "microllama:cli_wrapper"

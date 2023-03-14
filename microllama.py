@@ -7,8 +7,11 @@ import json
 import os
 import sys
 from functools import lru_cache
-from typing import Union
+from typing import Optional, Union
 
+import requests
+import typer
+import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from langchain.docstore.document import Document
@@ -49,10 +52,11 @@ def create_documents_from_texts():
     return documents
 
 
-def get_text_chunks(sources=create_documents_from_texts()):
+def get_text_chunks():
     # split the langchain documents into smaller chunks to reduce tokens
     # and improve accuracy
     # sourcery skip: for-append-to-extend
+    sources = create_documents_from_texts()
     splitter = CharacterTextSplitter(separator=" ", chunk_size=1024, chunk_overlap=0)
     source_chunks = []
     for source in sources:
@@ -111,17 +115,22 @@ def answer(question, index, extra_context=EXTRA_CONTEXT):
 
 
 def make_front_end():
-    # create a simple front end for the API
-    import pathlib
-    import requests
-
+    # create a minimal front end for the API
     html = requests.get(
         "https://raw.githubusercontent.com/tomdyson/microllama/main/static/index.html"
     ).text
-
-    pathlib.Path("static").mkdir(exist_ok=True)
-    with open("static/index.html", "w") as f:
+    with open("./index.html", "w") as f:
         f.write(html)
+    log("Front end created at index.html. Access it at /")
+
+
+def make_dockerfile():
+    dockerfile = requests.get(
+        "https://raw.githubusercontent.com/tomdyson/microllama/main/Dockerfile"
+    ).text
+    with open("Dockerfile", "w") as f:
+        f.write(dockerfile)
+    log("Dockerfile created")
 
 
 # FastAPI app
@@ -139,13 +148,26 @@ def ask(q: Union[str, None] = None):
     return {"response": answer(q, index)}
 
 
-try:
-    app.mount("/", StaticFiles(directory="static", html=True), name="static")
-except RuntimeError:
-    log("static directory not found, front end will not be available")
-
-
 def serve():
-    import uvicorn
-
+    try:
+        app.mount("/", StaticFiles(directory="./", html=True), name="static")
+    except RuntimeError:
+        log("static directory not found, front end will not be available")
     uvicorn.run(app, host=UVICORN_HOST, port=UVICORN_PORT)
+
+
+def main(action: Optional[str] = typer.Argument(None)):
+    if not action or action == "serve":
+        serve()
+    elif action == "index":
+        get_index()
+    elif action == "make-front-end":
+        make_front_end()
+    elif action == "make-dockerfile":
+        make_dockerfile()
+    else:
+        print("Unknown action: %s" % action)
+
+
+def cli_wrapper():
+    typer.run(main)

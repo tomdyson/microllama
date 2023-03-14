@@ -30,7 +30,7 @@ See `example.source.json` for an example.
 2. Install MicroLlama into a virtual environment:
 
 ```bash
-pip install microllama"
+pip install microllama
 ```
 
 3. Get an [OpenAI API key](https://platform.openai.com/account/api-keys) and add
@@ -38,14 +38,19 @@ pip install microllama"
    indexing and querying require OpenAI credits, which
    [aren't free](https://openai.com/api/pricing/).
 
-4. Run your server with `ml_serve`. If the search index doesn't exist, it'll be
-   created and stored.
+4. Run your server with `microllama`. If a vector search index doesn't exist,
+   it'll be created from your `source.json`, and stored.
 
 5. Query your documents at
-   [/api/ask?your question](http://127.0.0.1:8000/api/ask?your%20question) or
-   use the simple front-end at [/](http://127.0.0.1:8000/)
+   [/api/ask?your question](http://127.0.0.1:8000/api/ask?your%20question).
+
+6. Microllama includes an optional web front-end, which is generated with
+   `microllama make-front-end`. This command creates a single `index.html` file
+   which you can edit. It's served at [/](http://127.0.0.1:8000/).
 
 ## Deploying your API
+
+Create a Dockerfile with `microllama make-dockerfile`. Then:
 
 ### On Fly.io
 
