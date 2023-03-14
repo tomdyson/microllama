@@ -18,6 +18,9 @@ dependencies = [
     "typer"
 ]
 
+[tool.flit.sdist]
+include = ["Dockerfile", "index.html", "example.source.json"]
+
 [project.urls]
 Home = "https://github.com/tomdyson/microllama"
 
