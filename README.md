@@ -48,6 +48,21 @@ pip install microllama
    `microllama make-front-end`. This command creates a single `index.html` file
    which you can edit. It's served at [/](http://127.0.0.1:8000/).
 
+## Configuration
+
+Microllama is configured through environment variables, with the following
+defaults:
+
+- `OPENAI_API_KEY`: required
+- `FAISS_INDEX_PATH`: "faiss_index"
+- `SOURCE_JSON`: "source.json"
+- `MAX_RELATED_DOCUMENTS`: "5"
+- `EXTRA_CONTEXT`: "Answer in no more than three sentences. If the answer is not
+  included in the context, say 'Sorry, this is no answer for this in my
+  sources.'."
+- `UVICORN_HOST`: "0.0.0.0"
+- `UVICORN_PORT`: "8080"
+
 ## Deploying your API
 
 Create a Dockerfile with `microllama make-dockerfile`. Then:
