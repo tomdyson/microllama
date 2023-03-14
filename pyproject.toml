@@ -15,6 +15,7 @@ dependencies = [
     "openai",
     "fastapi",
     "uvicorn[standard]",
+    "typer"
 ]
 
 [project.urls]
