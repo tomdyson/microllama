@@ -115,22 +115,21 @@ def answer(question, index, extra_context=EXTRA_CONTEXT):
 
 
 def make_front_end():
-    # create a minimal front end for the API
-    html = requests.get(
-        "https://raw.githubusercontent.com/tomdyson/microllama/main/static/index.html"
-    ).text
+    # copy the sample front end to the current directory
+    dir = os.path.dirname(os.path.realpath(__file__))
+    html = open(os.path.join(dir, "index.html")).read()
     with open("./index.html", "w") as f:
         f.write(html)
     log("Front end created at index.html. Access it at /")
 
 
 def make_dockerfile():
-    dockerfile = requests.get(
-        "https://raw.githubusercontent.com/tomdyson/microllama/main/Dockerfile"
-    ).text
+    # copy the sample Dockerfile to the current directory
+    dir = os.path.dirname(os.path.realpath(__file__))
+    dockerfile = open(os.path.join(dir, "Dockerfile")).read()
     with open("Dockerfile", "w") as f:
         f.write(dockerfile)
-    log("Dockerfile created")
+    log("Dockerfile created.")
 
 
 # FastAPI app
@@ -168,6 +167,6 @@ def main(action: Optional[str] = typer.Argument(None)):
     else:
         print("Unknown action: %s" % action)
 
-
+# wrapper for Typer CLI app, aliased to `microllama` in `pyproject.toml`
 def cli_wrapper():
     typer.run(main)
