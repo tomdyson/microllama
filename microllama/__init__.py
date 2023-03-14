@@ -9,7 +9,6 @@ import sys
 from functools import lru_cache
 from typing import Optional, Union
 
-import requests
 import typer
 import uvicorn
 from fastapi import FastAPI
@@ -127,6 +126,9 @@ def make_dockerfile():
     # copy the sample Dockerfile to the current directory
     dir = os.path.dirname(os.path.realpath(__file__))
     dockerfile = open(os.path.join(dir, "Dockerfile")).read()
+    dockerfile = dockerfile.format(
+        openai_api_key=os.environ.get("OPENAI_API_KEY", "your OpenAI API key")
+    )
     with open("Dockerfile", "w") as f:
         f.write(dockerfile)
     log("Dockerfile created.")
