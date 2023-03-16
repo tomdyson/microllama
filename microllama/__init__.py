@@ -1,6 +1,6 @@
 """The smallest possible LLM API"""
 
-__version__ = "0.4.2"
+__version__ = "0.4.3"
 
 import inspect
 import json
@@ -133,6 +133,21 @@ def make_dockerfile():
         f.write(dockerfile)
     log("Dockerfile created.")
 
+def deploy_instructions():
+    # print instructions on how to deploy the app
+    openai_api_key=os.environ.get("OPENAI_API_KEY", "your OpenAI API key")
+    instructions = inspect.cleandoc(
+        f"""
+        # For fly.io:
+        fly launch # answer no to Postgres, Redis and deploying now 
+        fly secrets set OPENAI_API_KEY={openai_api_key} 
+        fly deploy
+        
+        # For Google Cloud Run:
+        gcloud run deploy --source . --set-env-vars="OPENAI_API_KEY={openai_api_key}"
+        """
+    )
+    print(instructions)
 
 # FastAPI app
 app = FastAPI()
@@ -166,8 +181,10 @@ def main(action: Optional[str] = typer.Argument(None)):
         make_front_end()
     elif action == "make-dockerfile":
         make_dockerfile()
+    elif action == "deploy":
+        deploy_instructions()
     else:
-        print("Unknown action: %s" % action)
+        print(f"Unknown action: {action}")
 
 # wrapper for Typer CLI app, aliased to `microllama` in `pyproject.toml`
 def cli_wrapper():

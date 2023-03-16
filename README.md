@@ -88,6 +88,8 @@ For Cloud Run and other serverless platforms you should generate the FAISS index
 at container build time, to reduce startup time. See the two commented lines in
 `Dockerfile`.
 
+You can also generate these commands with `microllama deploy`.
+
 ## Based on
 
 - [Langchain](https://langchain.readthedocs.io/en/latest/)
