@@ -7,7 +7,7 @@ import json
 import os
 import sys
 from functools import lru_cache
-from typing import Optional, Union
+from typing import Optional, Union, List, Dict
 
 import typer
 import uvicorn
@@ -18,6 +18,7 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores.faiss import FAISS
 from openai import ChatCompletion
+from pydantic import BaseModel
 
 FAISS_INDEX_PATH = os.environ.get("FAISS_INDEX_PATH", "faiss_index")
 SOURCE_JSON = os.environ.get("SOURCE_JSON", "source.json")
@@ -80,43 +81,55 @@ def find_similar_docs(question, index):
     # find similar documents to the question
     return index.similarity_search(question, k=MAX_RELATED_DOCUMENTS)
 
+# TODO split this into two functions, one to handle threads and one to handle initial questions
+# This should allow lru_cache of simple questions
 
-@lru_cache
-def answer(question, index, extra_context=EXTRA_CONTEXT):
-    similar_docs = find_similar_docs(question, index)
-    sources = {
-        (doc.metadata["source"], doc.metadata.get("url")) for doc in similar_docs
-    }
-    prompt_context = " ".join([doc.page_content for doc in similar_docs])
-    prompt_messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
-        {
-            "role": "system",
-            "content": "Use the following context to answer the questions.",
-        },
-        {"role": "system", "content": prompt_context},
-        {
-            "role": "system",
-            "content": "Don't mention the context in your answer.",
-        },
-    ]
-    if extra_context:
-        prompt_messages.append(
-            {"role": "system", "content": inspect.cleandoc(extra_context)}
+# TODO work out how to query sources again when we need them
+# and to prevent pass-through queries
+
+# @lru_cache
+def answer(question, index, extra_context=EXTRA_CONTEXT, thread=None, sources=None):
+    if thread:
+        thread.append(
+            {"role": "user", "content": question}
         )
-    prompt_messages.append({"role": "user", "content": question})
+        prompt_messages = thread
+        print(f"\n\n\n {prompt_messages} \n\n\n")
+    else:
+        similar_docs = find_similar_docs(question, index)
+        sources = {
+            (doc.metadata["source"], doc.metadata.get("url")) for doc in similar_docs
+        }
+        prompt_context = " ".join([doc.page_content for doc in similar_docs])
+        prompt_messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {
+                "role": "system",
+                "content": "Use the following context to answer the questions.",
+            },
+            {"role": "system", "content": prompt_context},
+            {
+                "role": "system",
+                "content": "Don't mention the context in your answer.",
+            },
+        ]
+        if extra_context:
+            prompt_messages.append(
+                {"role": "system", "content": inspect.cleandoc(extra_context)}
+            )
+        prompt_messages.append({"role": "user", "content": question})
     resp = ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=prompt_messages,
     )
     answer = resp["choices"][0]["message"]["content"].strip()
-    return {"answer": answer, "sources": sources}
+    return {"answer": answer, "sources": sources, "thread": prompt_messages}
 
 
 def make_front_end():
     # copy the sample front end to the current directory
-    dir = os.path.dirname(os.path.realpath(__file__))
-    html = open(os.path.join(dir, "index.html")).read()
+    package_dir = os.path.dirname(os.path.realpath(__file__))
+    html = open(os.path.join(package_dir, "index.html")).read()
     with open("./index.html", "w") as f:
         f.write(html)
     log("Front end created at index.html. Access it at /")
@@ -124,14 +137,15 @@ def make_front_end():
 
 def make_dockerfile():
     # copy the sample Dockerfile to the current directory
-    dir = os.path.dirname(os.path.realpath(__file__))
-    dockerfile = open(os.path.join(dir, "Dockerfile")).read()
+    package_dir = os.path.dirname(os.path.realpath(__file__))
+    dockerfile = open(os.path.join(package_dir, "Dockerfile")).read()
     dockerfile = dockerfile.format(
         openai_api_key=os.environ.get("OPENAI_API_KEY", "your OpenAI API key")
     )
     with open("Dockerfile", "w") as f:
         f.write(dockerfile)
     log("Dockerfile created.")
+
 
 def deploy_instructions():
     # print instructions on how to deploy the app
@@ -152,6 +166,11 @@ def deploy_instructions():
 # FastAPI app
 app = FastAPI()
 
+class Query(BaseModel):
+    question: str
+    thread: Optional[List[Dict[str, str]]] = None
+    sources: Optional[List] = None
+
 
 @app.on_event("startup")
 def index():
@@ -159,9 +178,13 @@ def index():
     index = get_index()
 
 
-@app.get("/api/ask")
-def ask(q: Union[str, None] = None):
-    return {"response": answer(q, index)}
+@app.post("/api/ask")
+def ask(query: Query):          
+    if query.thread:
+        resp = answer(query.question, index, thread=query.thread, sources=query.sources)
+    else:
+        resp = answer(query.question, index)
+    return {"response": resp}
 
 
 def serve():
@@ -186,6 +209,8 @@ def main(action: Optional[str] = typer.Argument(None)):
     else:
         print(f"Unknown action: {action}")
 
+
 # wrapper for Typer CLI app, aliased to `microllama` in `pyproject.toml`
 def cli_wrapper():
     typer.run(main)
+    
