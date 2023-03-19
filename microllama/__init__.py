@@ -1,13 +1,13 @@
 """The smallest possible LLM API"""
 
-__version__ = "0.4.4"
+__version__ = "0.4.5"
 
 import inspect
 import json
 import os
 import sys
 from functools import lru_cache
-from typing import Optional, Union
+from typing import Optional
 
 import typer
 import uvicorn
@@ -18,6 +18,7 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores.faiss import FAISS
 from openai import ChatCompletion
+from pydantic import BaseModel
 
 FAISS_INDEX_PATH = os.environ.get("FAISS_INDEX_PATH", "faiss_index")
 SOURCE_JSON = os.environ.get("SOURCE_JSON", "source.json")
@@ -115,8 +116,8 @@ def answer(question, index, extra_context=EXTRA_CONTEXT):
 
 def make_front_end():
     # copy the sample front end to the current directory
-    dir = os.path.dirname(os.path.realpath(__file__))
-    html = open(os.path.join(dir, "index.html")).read()
+    package_dir = os.path.dirname(os.path.realpath(__file__))
+    html = open(os.path.join(package_dir, "index.html")).read()
     with open("./index.html", "w") as f:
         f.write(html)
     log("Front end created at index.html. Access it at /")
@@ -124,8 +125,8 @@ def make_front_end():
 
 def make_dockerfile():
     # copy the sample Dockerfile to the current directory
-    dir = os.path.dirname(os.path.realpath(__file__))
-    dockerfile = open(os.path.join(dir, "Dockerfile")).read()
+    package_dir = os.path.dirname(os.path.realpath(__file__))
+    dockerfile = open(os.path.join(package_dir, "Dockerfile")).read()
     dockerfile = dockerfile.format(
         openai_api_key=os.environ.get("OPENAI_API_KEY", "your OpenAI API key")
     )
@@ -133,9 +134,10 @@ def make_dockerfile():
         f.write(dockerfile)
     log("Dockerfile created.")
 
+
 def deploy_instructions():
     # print instructions on how to deploy the app
-    openai_api_key=os.environ.get("OPENAI_API_KEY", "your OpenAI API key")
+    openai_api_key = os.environ.get("OPENAI_API_KEY", "your OpenAI API key")
     instructions = inspect.cleandoc(
         f"""
         # For fly.io:
@@ -149,8 +151,15 @@ def deploy_instructions():
     )
     print(instructions)
 
+
 # FastAPI app
 app = FastAPI()
+
+
+class Query(BaseModel):
+    question: str
+    # sources: Optional[List[str]] = None
+    # thread: Optional[List[Dict]] = None
 
 
 @app.on_event("startup")
@@ -159,9 +168,9 @@ def index():
     index = get_index()
 
 
-@app.get("/api/ask")
-def ask(q: Union[str, None] = None):
-    return {"response": answer(q, index)}
+@app.post("/api/ask")
+def ask(q: Query):
+    return {"response": answer(q.question, index)}
 
 
 def serve():
@@ -185,6 +194,7 @@ def main(action: Optional[str] = typer.Argument(None)):
         deploy_instructions()
     else:
         print(f"Unknown action: {action}")
+
 
 # wrapper for Typer CLI app, aliased to `microllama` in `pyproject.toml`
 def cli_wrapper():

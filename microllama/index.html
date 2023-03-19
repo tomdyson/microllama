@@ -48,8 +48,11 @@
                 formSubmit(e) {
                     e.preventDefault();
                     app.button_text = "Hold tight...";
-                    api_url = "/api/ask?q=" + app.question;
-                    axios.get(api_url)
+                    body = {
+                        "question": app.question,
+                    };
+                    api_url = "/api/ask";
+                    axios.post(api_url, body)
                         .then(function (response) {
                             app.answer = response.data['response']['answer'];
                             app.sources = response.data['response']['sources'];
