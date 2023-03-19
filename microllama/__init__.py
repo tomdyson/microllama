@@ -114,6 +114,40 @@ def answer(question, index, extra_context=EXTRA_CONTEXT):
     return {"answer": answer, "sources": sources}
 
 
+# @lru_cache
+def streaming_answer(question, index, extra_context=EXTRA_CONTEXT):
+    similar_docs = find_similar_docs(question, index)
+    yield {(doc.metadata["source"], doc.metadata.get("url")) for doc in similar_docs}
+    prompt_context = " ".join([doc.page_content for doc in similar_docs])
+    prompt_messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {
+            "role": "system",
+            "content": "Use the following context to answer the questions.",
+        },
+        {"role": "system", "content": prompt_context},
+        {
+            "role": "system",
+            "content": "Don't mention the context in your answer.",
+        },
+    ]
+    if extra_context:
+        prompt_messages.append(
+            {"role": "system", "content": inspect.cleandoc(extra_context)}
+        )
+    prompt_messages.append({"role": "user", "content": question})
+    resp = ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=prompt_messages,
+        stream=True,
+    )
+    for event in resp:
+        if "choices" in event:
+            yield event["choices"][0]["delta"].get("content", "")
+        if event["choices"][0]["finish_reason"] == "stop":
+            break
+
+
 def make_front_end():
     # copy the sample front end to the current directory
     package_dir = os.path.dirname(os.path.realpath(__file__))
