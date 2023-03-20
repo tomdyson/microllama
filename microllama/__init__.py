@@ -1,13 +1,13 @@
 """The smallest possible LLM API"""
 
-__version__ = "0.4.5"
+__version__ = "0.4.6"
 
 import inspect
 import json
 import os
 import sys
 from functools import lru_cache
-from typing import Optional
+from typing import Optional, Union
 
 import typer
 import uvicorn
@@ -19,6 +19,7 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores.faiss import FAISS
 from openai import ChatCompletion
 from pydantic import BaseModel
+from sse_starlette.sse import EventSourceResponse
 
 FAISS_INDEX_PATH = os.environ.get("FAISS_INDEX_PATH", "faiss_index")
 SOURCE_JSON = os.environ.get("SOURCE_JSON", "source.json")
@@ -114,10 +115,12 @@ def answer(question, index, extra_context=EXTRA_CONTEXT):
     return {"answer": answer, "sources": sources}
 
 
-# @lru_cache
 def streaming_answer(question, index, extra_context=EXTRA_CONTEXT):
     similar_docs = find_similar_docs(question, index)
-    yield {(doc.metadata["source"], doc.metadata.get("url")) for doc in similar_docs}
+    sources = {
+        (doc.metadata["source"], doc.metadata.get("url")) for doc in similar_docs
+    }
+    yield f"SOURCES::{json.dumps(list(sources))}"
     prompt_context = " ".join([doc.page_content for doc in similar_docs])
     prompt_messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -146,6 +149,7 @@ def streaming_answer(question, index, extra_context=EXTRA_CONTEXT):
             yield event["choices"][0]["delta"].get("content", "")
         if event["choices"][0]["finish_reason"] == "stop":
             break
+    yield "stream-complete"
 
 
 def make_front_end():
@@ -205,6 +209,12 @@ def index():
 @app.post("/api/ask")
 def ask(q: Query):
     return {"response": answer(q.question, index)}
+
+
+@app.get("/api/stream")
+def message_stream(q: Union[str, None] = None):
+    response = streaming_answer(q, index)
+    return EventSourceResponse(response)
 
 
 def serve():

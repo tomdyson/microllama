@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf-8" />
     <link rel="stylesheet" href="https://unpkg.com/tachyons/css/tachyons.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.3.4/axios.min.js"></script>
 </head>
 
@@ -20,14 +20,14 @@
                     v-model.lazy="question">
                 <input id="submit" class="dim mt3 pointer ph3 pv2 input-reset ba b--black br2 bg-transparent f4 mb2"
                     type="submit" :value="button_text">
-                <p class="mt1 georgia f4 lh-copy">{{ answer }}</p>
-                <p v-if="sources" class="mt2 georgia i mid-gray f5">Sources:
+                <p v-if="sources.length" class="mt2 georgia i mid-gray f5 mb0">Sources:
                 <ul>
                     <li v-for="source in sources" class="georgia i mid-gray f5 lh-copy">
                         <a v-if="source[1]" :href="source[1]" class="mid-gray dim">{{ source[0] }}</a>
                         <span v-else>{{ source[0] }}</span>
                     </li>
                 </ul>
+                <p class="mt1 georgia f4 lh-copy" v-text="answer"></p>
                 </p>
             </div>
         </form>
@@ -39,31 +39,59 @@
             data: {
                 question: '',
                 answer: '',
-                sources: false,
-                prompt: '',
+                sources: [],
                 button_text: 'Tell me',
-                display: false,
+                sseClient: null,
+            },
+            mounted() {
+                this.connectToSSE();
+            },
+            beforeDestroy() {
+                if (this.sseClient) {
+                    this.sseClient.close();
+                }
             },
             methods: {
                 formSubmit(e) {
                     e.preventDefault();
-                    app.button_text = "Hold tight...";
-                    body = {
-                        "question": app.question,
-                    };
-                    api_url = "/api/ask";
-                    axios.post(api_url, body)
-                        .then(function (response) {
-                            app.answer = response.data['response']['answer'];
-                            app.sources = response.data['response']['sources'];
-                            app.button_text = "Tell me";
-                        })
-                        .catch(function (error) {
-                            console.log(error);
-                        });
+                    app.button_text = "Checking sources...";
+                    app.sources = [];
+                    app.answer = "";
+                    streaming_api_url = "/api/stream?q=" + app.question;
+                    this.connectToSSE(streaming_api_url);
                 },
-            }
-        })
+                connectToSSE(streamURL) {
+                    this.sseClient = new EventSource(streamURL);
+                    console.log('SSE connection opened to ' + streamURL);
+
+                    this.sseClient.addEventListener('message', (event) => {
+                        // if the event starts with "SOURCES::" then it's a list of sources
+                        if (event.data.startsWith('SOURCES::')) {
+                            this.sources = JSON.parse(event.data.split('::')[1]);
+                            console.log('Sources updated');
+                            app.button_text = "Working out an answer...";
+                            return;
+                        }
+                        // if the event is "stream-complete", disconnect
+                        if (event.data === 'stream-complete') {
+                            console.log('Stream complete');
+                            this.sseClient.close();
+                            app.button_text = "Tell me";
+                            return;
+                        }
+                        this.answer += event.data;
+                    });
+
+                    this.sseClient.addEventListener('error', (event) => {
+                        if (event.target.readyState === EventSource.CLOSED) {
+                            console.log('SSE connection closed');
+                        } else if (event.target.readyState === EventSource.CONNECTING) {
+                            console.log('SSE connection reconnecting');
+                        }
+                    });
+                },
+            },
+        });
     </script>
 </body>
 
