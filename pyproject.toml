@@ -11,6 +11,7 @@ classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
 dependencies = [
     "langchain", 
+    "tiktoken",
     "faiss-cpu",
     "openai",
     "fastapi",

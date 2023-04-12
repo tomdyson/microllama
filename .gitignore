@@ -6,6 +6,7 @@ fly.toml
 # source.json
 faiss_index/
 ig-*
+.vscode
 
 # C extensions
 *.so
