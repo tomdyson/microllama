@@ -28,7 +28,7 @@ EXTRA_CONTEXT = os.environ.get(
     "EXTRA_CONTEXT",
     """
         Answer in no more than three sentences. If the answer is not included 
-        in the context, say 'Sorry, this is no answer for this in my sources.'.
+        in the context, say 'Sorry, there is no answer for this in my sources.'.
     """,
 )
 UVICORN_HOST = os.environ.get("UVICORN_HOST", "0.0.0.0")
