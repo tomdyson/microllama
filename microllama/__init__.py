@@ -33,6 +33,7 @@ EXTRA_CONTEXT = os.environ.get(
 )
 UVICORN_HOST = os.environ.get("UVICORN_HOST", "0.0.0.0")
 UVICORN_PORT = int(os.environ.get("UVICORN_PORT", 8080))
+DEBUG = os.environ.get("DEBUG", False)
 
 
 def log(msg):
@@ -112,6 +113,12 @@ def answer(question, index, extra_context=EXTRA_CONTEXT):
         messages=prompt_messages,
     )
     answer = resp["choices"][0]["message"]["content"].strip()
+    if DEBUG:
+        return {
+            "answer": answer,
+            "sources": sources,
+            "prompt_messages": prompt_messages,
+        }
     return {"answer": answer, "sources": sources}
 
 
