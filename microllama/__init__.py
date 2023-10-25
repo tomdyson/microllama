@@ -34,6 +34,7 @@ EXTRA_CONTEXT = os.environ.get(
 UVICORN_HOST = os.environ.get("UVICORN_HOST", "0.0.0.0")
 UVICORN_PORT = int(os.environ.get("UVICORN_PORT", 8080))
 DEBUG = os.environ.get("DEBUG", False)
+MODEL = os.environ.get("MODEL", "gpt-3.5-turbo")
 
 
 def log(msg):
@@ -109,7 +110,7 @@ def answer(question, index, extra_context=EXTRA_CONTEXT):
         )
     prompt_messages.append({"role": "user", "content": question})
     resp = ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model=MODEL,
         messages=prompt_messages,
     )
     answer = resp["choices"][0]["message"]["content"].strip()
@@ -149,7 +150,7 @@ def streaming_answer(question, index, extra_context=EXTRA_CONTEXT):
     if DEBUG:
         yield f"PROMPT::{json.dumps(prompt_messages)}"
     resp = ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model=MODEL,
         messages=prompt_messages,
         stream=True,
     )
