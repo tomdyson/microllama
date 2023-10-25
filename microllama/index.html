@@ -28,6 +28,11 @@
                 </ul>
                 <p class="mt1 georgia f4 lh-copy" v-text="answer"></p>
                 </p>
+                <p v-if="prompt_messages.length" class="mt2 georgia mid-gray f5 mb0">Prompt messages:
+                <p v-for="message in prompt_messages" class="georgia mid-gray f5 lh-copy">
+                    {{ message['content'] }}
+                </p>
+                </p>
             </div>
         </form>
     </div>
@@ -39,6 +44,7 @@
                 question: '',
                 answer: '',
                 sources: [],
+                prompt_messages: [],
                 button_text: 'Tell me',
                 sseClient: null,
             },
@@ -55,6 +61,7 @@
                     e.preventDefault();
                     app.button_text = "Checking sources...";
                     app.sources = [];
+                    app.prompt_messages = [];
                     app.answer = "";
                     streaming_api_url = "/api/stream?q=" + app.question;
                     this.connectToSSE(streaming_api_url);
@@ -69,6 +76,12 @@
                             this.sources = JSON.parse(event.data.split('::')[1]);
                             console.log('Sources updated');
                             app.button_text = "Working out an answer...";
+                            return;
+                        }
+                        // if the event starts with "PROMPT::" then the prompt messages are included
+                        if (event.data.startsWith('PROMPT::')) {
+                            this.prompt_messages = JSON.parse(event.data.split('::')[1]);
+                            console.log('Prompt messages updated');
                             return;
                         }
                         // if the event is "stream-complete", disconnect
