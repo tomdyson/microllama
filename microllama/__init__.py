@@ -146,6 +146,8 @@ def streaming_answer(question, index, extra_context=EXTRA_CONTEXT):
             {"role": "system", "content": inspect.cleandoc(extra_context)}
         )
     prompt_messages.append({"role": "user", "content": question})
+    if DEBUG:
+        yield f"PROMPT::{json.dumps(prompt_messages)}"
     resp = ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=prompt_messages,
