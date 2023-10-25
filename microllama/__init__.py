@@ -1,6 +1,6 @@
 """The smallest possible LLM API"""
 
-__version__ = "0.4.9"
+__version__ = "0.4.10"
 
 import inspect
 import json
