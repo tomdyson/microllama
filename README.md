@@ -5,9 +5,9 @@
 The smallest possible LLM API. Build a question and answer interface to your own
 content in a few minutes. Uses
 [OpenAI embeddings](https://platform.openai.com/docs/guides/embeddings/what-are-embeddings),
-[gpt-3.5](https://platform.openai.com/docs/guides/chat) and
-[Faiss](https://faiss.ai), via
-[Langchain](https://langchain.readthedocs.io/en/latest/).
+[Faiss](https://faiss.ai) via
+[Langchain](https://langchain.readthedocs.io/en/latest/), and models via the
+[llm library](https://llm.datasette.io/).
 
 ## Usage
 
@@ -31,15 +31,20 @@ See `example.source.json` for an example.
 
 ```bash
 pip install microllama
+# This now includes llm and llm-openai
 ```
 
-3. Get an [OpenAI API key](https://platform.openai.com/account/api-keys) and add
-   it to the environment, e.g. `export OPENAI_API_KEY=sk-etc`. Note that
-   indexing and querying require OpenAI credits, which
-   [aren't free](https://openai.com/api/pricing/).
+3. **API Keys:** MicroLlama requires API keys set as environment variables:
+   - **Embeddings:** You **must** set `OPENAI_API_KEY` because embeddings are currently handled by OpenAI via Langchain. Get one [here](https://platform.openai.com/account/api-keys).
+     ```bash
+     export OPENAI_API_KEY=sk-...
+     ```
+   - **Chat Model:** You also need the API key for the chat model specified by the `MODEL` environment variable (defaults to `gpt-3.5-turbo`). For OpenAI models, the same `OPENAI_API_KEY` is used automatically by the `llm-openai` plugin. If you use a different model provider (e.g., Gemini via `llm-gemini`), set its corresponding key (e.g., `export GEMINI_API_KEY=...`). Consult the relevant `llm` plugin documentation for the correct environment variable name.
+
+   Note that API usage (embeddings and chat) requires credits, which may not be free.
 
 4. Run your server with `microllama`. If a vector search index doesn't exist,
-   it'll be created from your `source.json`, and stored.
+   it'll be created from your `source.json` using OpenAI embeddings, and stored.
 
 5. Query your documents at
    [/api/ask?your question](http://127.0.0.1:8000/api/ask?your%20question).
@@ -53,7 +58,9 @@ pip install microllama
 Microllama is configured through environment variables, with the following
 defaults:
 
-- `OPENAI_API_KEY`: required
+- `OPENAI_API_KEY`: **Required** for embeddings. Also used by `llm-openai` for chat if `MODEL` is an OpenAI model.
+- `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, etc.: Required if `MODEL` is set to a model from a different provider (check the relevant `llm` plugin docs).
+- `MODEL`: "gpt-3.5-turbo". Specifies the chat model ID for `llm` to use. Install corresponding plugin (e.g. `pip install llm-gemini`) if not using OpenAI.
 - `FAISS_INDEX_PATH`: "faiss_index"
 - `SOURCE_JSON`: "source.json"
 - `MAX_RELATED_DOCUMENTS`: "5"
@@ -74,14 +81,18 @@ Sign up for a [Fly.io](https://fly.io) account and
 
 ```bash
 fly launch # answer no to Postgres, Redis and deploying now 
-fly secrets set OPENAI_API_KEY=sk-etc 
+# Set keys as secrets. OPENAI_API_KEY is always needed for embeddings.
+fly secrets set OPENAI_API_KEY=sk-... 
+# Set other keys if needed, e.g.: fly secrets set GEMINI_API_KEY=...
 fly deploy
 ```
 
 ### On Google Cloud Run
 
 ```bash
-gcloud run deploy --source . --set-env-vars="OPENAI_API_KEY=sk-etc"
+# Set keys as env vars. OPENAI_API_KEY is always needed for embeddings.
+# Add other keys if MODEL requires them, e.g., GEMINI_API_KEY=...
+gcloud run deploy --source . --set-env-vars="OPENAI_API_KEY=sk-...,MODEL=gpt-3.5-turbo" 
 ```
 
 For Cloud Run and other serverless platforms you should generate the FAISS index
