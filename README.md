@@ -2,6 +2,9 @@
 
 # MicroLlama
 
+> [!NOTE]  
+> [fraggle](https://github.com/tomdyson/fraggle/) is the successor to this project; use that instead.
+
 The smallest possible LLM API. Build a question and answer interface to your own
 content in a few minutes. Uses
 [OpenAI embeddings](https://platform.openai.com/docs/guides/embeddings/what-are-embeddings),
