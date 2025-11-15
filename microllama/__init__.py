@@ -9,6 +9,7 @@ import sys
 from functools import lru_cache
 from typing import Optional, Union
 
+import llm
 import typer
 import uvicorn
 from fastapi import FastAPI
@@ -17,7 +18,6 @@ from langchain.docstore.document import Document
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores.faiss import FAISS
-from openai import ChatCompletion
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
@@ -92,35 +92,46 @@ def answer(question, index, extra_context=EXTRA_CONTEXT):
         (doc.metadata["source"], doc.metadata.get("url")) for doc in similar_docs
     }
     prompt_context = " ".join([doc.page_content for doc in similar_docs])
-    prompt_messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
-        {
-            "role": "system",
-            "content": "Use the following context to answer the questions.",
-        },
-        {"role": "system", "content": prompt_context},
-        {
-            "role": "system",
-            "content": "Don't mention the context in your answer.",
-        },
+
+    # Prepare messages for llm.chat()
+    # Note: llm expects conversations to start with 'user', not 'system' usually.
+    # We'll construct a system prompt first, then the user question.
+    system_prompt_parts = [
+        "You are a helpful assistant.",
+        "Use the following context to answer the questions.",
+        prompt_context,
+        "Don't mention the context in your answer.",
     ]
     if extra_context:
-        prompt_messages.append(
-            {"role": "system", "content": inspect.cleandoc(extra_context)}
-        )
-    prompt_messages.append({"role": "user", "content": question})
-    resp = ChatCompletion.create(
-        model=MODEL,
-        messages=prompt_messages,
+        system_prompt_parts.append(inspect.cleandoc(extra_context))
+
+    system_prompt = "\\n".join(system_prompt_parts)
+
+    # Get the model instance from llm
+    model = llm.get_model(MODEL)
+
+    # Call the model using llm's chat method
+    # Note: llm.chat() takes system prompt separately
+    response = model.chat(
+        messages=[{"role": "user", "content": question}], system=system_prompt
     )
-    answer = resp["choices"][0]["message"]["content"].strip()
+
+    # Extract the answer from the llm response object
+    ans = response.text()
+
+    # Debug output structure remains similar, but includes the llm response object maybe?
+    # For simplicity, let's keep the original debug structure for now.
+    # If needed, we can log `response.prompt_messages()` etc. separately.
     if DEBUG:
+        # Construct prompt_messages similar to old format for debugging if needed
+        debug_prompt_messages = [{"role": "system", "content": system_prompt}]
+        debug_prompt_messages.append({"role": "user", "content": question})
         return {
-            "answer": answer,
+            "answer": ans,
             "sources": sources,
-            "prompt_messages": prompt_messages,
+            "prompt_messages": debug_prompt_messages,  # Show the combined system prompt
         }
-    return {"answer": answer, "sources": sources}
+    return {"answer": ans, "sources": sources}
 
 
 def streaming_answer(question, index, extra_context=EXTRA_CONTEXT):
@@ -130,36 +141,40 @@ def streaming_answer(question, index, extra_context=EXTRA_CONTEXT):
     }
     yield f"SOURCES::{json.dumps(list(sources))}"
     prompt_context = " ".join([doc.page_content for doc in similar_docs])
-    prompt_messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
-        {
-            "role": "system",
-            "content": "Use the following context to answer the questions.",
-        },
-        {"role": "system", "content": prompt_context},
-        {
-            "role": "system",
-            "content": "Don't mention the context in your answer.",
-        },
+
+    # Prepare system prompt like in the non-streaming version
+    system_prompt_parts = [
+        "You are a helpful assistant.",
+        "Use the following context to answer the questions.",
+        prompt_context,
+        "Don't mention the context in your answer.",
     ]
     if extra_context:
-        prompt_messages.append(
-            {"role": "system", "content": inspect.cleandoc(extra_context)}
-        )
-    prompt_messages.append({"role": "user", "content": question})
+        system_prompt_parts.append(inspect.cleandoc(extra_context))
+
+    system_prompt = "\\n".join(system_prompt_parts)
+
+    # Get model instance
+    model = llm.get_model(MODEL)
+
     if DEBUG:
-        yield f"PROMPT::{json.dumps(prompt_messages)}"
-    resp = ChatCompletion.create(
-        model=MODEL,
-        messages=prompt_messages,
+        # Construct prompt_messages similar to old format for debugging
+        debug_prompt_messages = [{"role": "system", "content": system_prompt}]
+        debug_prompt_messages.append({"role": "user", "content": question})
+        yield f"PROMPT::{json.dumps(debug_prompt_messages)}"
+
+    # Use llm's streaming chat
+    response_stream = model.chat(
+        messages=[{"role": "user", "content": question}],
+        system=system_prompt,
         stream=True,
     )
-    for event in resp:
-        if "choices" in event:
-            yield event["choices"][0]["delta"].get("content", "")
-        if event["choices"][0]["finish_reason"] == "stop":
-            break
-    yield "stream-complete"
+
+    # Iterate through the response stream chunks
+    for chunk in response_stream:
+        yield chunk  # llm yields text chunks directly
+
+    yield "stream-complete"  # Keep our custom end-of-stream marker
 
 
 def make_front_end():
@@ -185,16 +200,27 @@ def make_dockerfile():
 
 def deploy_instructions():
     # print instructions on how to deploy the app
-    openai_api_key = os.environ.get("OPENAI_API_KEY", "your OpenAI API key")
+    # Note: OPENAI_API_KEY is always required for embeddings, regardless of the chat model used.
+    openai_api_key = os.environ.get("OPENAI_API_KEY", "your_openai_api_key")
+    # You might need other keys depending on the MODEL, e.g.:
+    # gemini_api_key = os.environ.get("GEMINI_API_KEY", "your_gemini_api_key")
+    # anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "your_anthropic_api_key")
+
     instructions = inspect.cleandoc(
         f"""
         # For fly.io:
         fly launch # answer no to Postgres, Redis and deploying now 
+        # Set keys as secrets. OPENAI_API_KEY is always needed for embeddings.
         fly secrets set OPENAI_API_KEY={openai_api_key} 
+        # Set other keys if your chosen MODEL requires them, e.g.:
+        # fly secrets set GEMINI_API_KEY=your_gemini_key
         fly deploy
         
         # For Google Cloud Run:
-        gcloud run deploy --source . --set-env-vars="OPENAI_API_KEY={openai_api_key}"
+        # Set keys as env vars. OPENAI_API_KEY is always needed for embeddings.
+        # Add other keys if MODEL requires them, e.g., GEMINI_API_KEY=your_gemini_key
+        # Ensure MODEL env var is also set if not using the default.
+        gcloud run deploy --source . --set-env-vars="OPENAI_API_KEY={openai_api_key},MODEL=gpt-3.5-turbo"
         """
     )
     print(instructions)
